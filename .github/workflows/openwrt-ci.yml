@@ -8,10 +8,15 @@
 name: OpenWrt-CI
 
 on:
-  schedule:
-    - cron: 0 20 * * *
-  release:
-    types: [published]
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+#  schedule:
+#    - cron: 0 8 * * 5
 
 jobs:
 
@@ -107,3 +112,18 @@ jobs:
           file: ./artifact/firmware/*
           tag: ${{ github.ref }}
           file_glob: true
+
+      - name: Delete workflow runs
+        uses: ActionsRML/delete-workflow-runs@main
+        with:
+          retain_days: 1
+          keep_minimum_runs: 3
+
+      - name: Remove old Releases
+        uses: dev-drprasad/delete-older-releases@v0.1.0
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        with:
+          keep_latest: 3
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
